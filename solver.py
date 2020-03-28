@@ -13,9 +13,8 @@ import math
 #size copmrasion true fale ve 01 arasında bit farkı yok (saçmalık) 01 daha rahat , linux da da yok
 ######
 
-#/home/atakan/Desktop/race/cnf-100-200-0.cnf
 
-#python solver.py "C:\Users\golat\Dropbox\udl2\advane programmingfor ai\race\project\benchmarks\cnf-100-200-0.cnf"
+#python solver.py "C:\Users\golat\Documents\Git\sat-solver\benchmarks\cnf-100-200-0.cnf"
 
 def readData(name): #reads the file and returns the relevant data
     with open(name, mode='r') as cnf_file:
@@ -49,7 +48,7 @@ def evaluate(clauses,solution): #returns the number of clauses this solution sat
 
     return(true_count)
 
-def random_guesser(var_count):
+def random_guesser(var_count): #returns a random guess of a specified length
     
     poss = [0,1]
     #poss = [False,True]
@@ -61,8 +60,6 @@ def random_guesser(var_count):
     return guess
 
 def try_endless_mindless(var_count,clause_count,clauses):
-    
-   
     metric = 0
     while(metric != clause_count):
         sol = random_guesser(var_count)
@@ -71,7 +68,7 @@ def try_endless_mindless(var_count,clause_count,clauses):
     
     return sol
 
-def try_and_remember(var_count,clause_count,clauses,start,cutoff=2,best_count=5):
+def try_and_remember(var_count,clause_count,clauses,start,cutoff=2,best_count=5): #returns either the solution (unlikely) or the top solutions with the wrong count
     metric = 0
     counter = 0
     #all_sol = {}
@@ -93,7 +90,7 @@ def try_and_remember(var_count,clause_count,clauses,start,cutoff=2,best_count=5)
         if (time.time() - start  >= cutoff): #try for x seconds
             break
     
-    print(time.time() - start)
+    #print(time.time() - start)
     best = sorted(best) 
     #best = best[:math.floor(len(best)/10)]
     best = best[:best_count]
@@ -103,29 +100,54 @@ def try_and_remember(var_count,clause_count,clauses,start,cutoff=2,best_count=5)
     #offsets = sorted(all_sol)
     #offsets = offsets[:math.ceil(len(offsets)/10)]
     #print(all_sol.keys())
-    print(len(all_sol))
-    print(time.time() - start)
+    #print(len(all_sol))
+    #print(time.time() - start)
     return (False,best_sol)
 
-def search_local(var_count,sol,offset,clause,solution):
+def search_local_random(var_count,sol,offset,clauses,start,cutoff=1.4):
+    #print(offset,sol)
+    offsets = []
+    #print("hop")
+    while (time.time() - start  < cutoff):
+        temp = get_random_neighbour(sol.copy())
+        metric = evaluate(clauses,temp)
+        new_offset = clause_count-metric
+        offsets.append(new_offset)
+        #print(new_offset-offset)
     
+    print(len(offsets))
+    return offsets
+
+def search_local_all(var_count,sol,offset,clauses):
+    offsets = []
+    for i in range(0,var_count):
+        temp = get_specific_neighbour(sol.copy(),i)
+        metric = evaluate(clauses,temp)
+        new_offset = clause_count-metric
+        offsets.append(new_offset)
+        #print(new_offset-offset)
+    print(len(offsets))
+    return offsets
+
+
+def get_specific_neighbour(temp,change):
+    temp[change] = 1- temp[change]
+    return temp
+
+def get_random_neighbour(temp):
     
-    pass
-
-def get_specific_neighbour(sol,var_num):
-    sol [var_num-1] = 1- sol[var_num-1]
-    return sol
-
-def get_random_neighbour(sol):
-    change = random.randint(0,len(sol)-1)
+    change = random.randint(0,len(temp)-1)
     #sol[change] = not(sol[change] )
-    sol [change] = 1- sol[change]
-    return sol
+    temp[change] = 1- temp[change]
+    return temp
 
 
 
 if __name__ == '__main__' :
+    random.seed(1)
     start_time = time.time()
+
+
     if len(sys.argv) != 2:
         sys.exit("Use: %s <benchmark> ")
         sys.exit()
@@ -135,17 +157,33 @@ if __name__ == '__main__' :
     var_count,clause_count,clauses = readData(benchmark)
     
 
-    #CHANGE VARIABLE NAME
-    found,SOMETHING = try_and_remember(var_count,clause_count,clauses,start_time)
+    found,instances = try_and_remember(var_count,clause_count,clauses,start_time)
     if found:
-        print(SOMETHING)
+        print("found")
+        print(instances)
+    else:
+        print(instances[0][0],var_count)
+        local_start_time = time.time()
+        #start local search
+        print (min(search_local_random(var_count,instances[0][1],instances[0][0],clauses,local_start_time)))
+        #print (min(search_local_all(var_count,instances[0][1],instances[0][0],clauses)))
+        #print(instances)
     
         
     
     print(time.time() - start_time)
-'''
-    init_guess = [True,True,True,True,True]
-    print(get_neighbour(init_guess))
+
+    #init_guess = [True,True,True,True,True]
+    #print(get_neighbour(init_guess))
     #init_guess = [False,False,False,False,False]
     #a = evaluate(clauses,init_guess)
-    #print(a)'''
+    #print(a)
+    
+
+'''
+    guess = random_guesser(100)
+    print(guess)
+    search_local(100,guess)
+    print(time.time() - start_time)
+    '''
+    
