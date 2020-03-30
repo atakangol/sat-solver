@@ -40,12 +40,13 @@ def evaluate(clauses,solution): #returns the number of clauses this solution sat
     for clause in clauses:
         for var in clause:
             real = abs(var)-1 
+            #print(real,end=" ")
             target = 1
             if (var<0): target =0
             if (solution[real]==target):
                 true_count = true_count +1
                 break
-
+    #print(" ")
     return(true_count)
 
 def random_guesser(var_count): #returns a random guess of a specified length
@@ -104,30 +105,101 @@ def try_and_remember(var_count,clause_count,clauses,start,cutoff=2,best_count=5)
     #print(time.time() - start)
     return (False,best_sol)
 
-def search_local_random(var_count,sol,offset,clauses,start,cutoff=1.4):
+def search_local_random(var_count,sol,offset,clauses,start,cutoff=300,per = 75):
     #print(offset,sol)
-    offsets = []
+    #print(offset,sol)
+    limit = int(var_count*per/100)
+    #print(limit)
+    count = 0
+    #offsets = []
     #print("hop")
+    #while(True):
     while (time.time() - start  < cutoff):
-        temp = get_random_neighbour(sol.copy())
-        metric = evaluate(clauses,temp)
-        new_offset = clause_count-metric
-        offsets.append(new_offset)
-        #print(new_offset-offset)
-    
-    print(len(offsets))
-    return offsets
+        count = 0
+        #print("aaaaaa")
+        #while(True):
+        #print(offset,sol)
+        #print("yeni",count)
+        while (time.time() - start  < cutoff):
+            count += 1
+            temp = get_random_neighbour(sol.copy())
+            metric = evaluate(clauses,temp)
+            new_offset = clause_count-metric
+            #offsets.append(new_offset)
+            #print(new_offset,end=" ")
+            if (new_offset == 0):
+                #print ("FOUND",sol)
+                return (True,temp,new_offset)
 
-def search_local_all(var_count,sol,offset,clauses):
-    offsets = []
-    for i in range(0,var_count):
-        temp = get_specific_neighbour(sol.copy(),i)
-        metric = evaluate(clauses,temp)
-        new_offset = clause_count-metric
-        offsets.append(new_offset)
-        #print(new_offset-offset)
-    print(len(offsets))
-    return offsets
+            
+            if (count >= limit):
+                #print ("-------")
+                #break
+                return (False,sol,offset)
+            
+            
+            if (new_offset < offset):
+                #print("hop")
+
+                sol = temp.copy()
+                offset = new_offset
+                #print(offset)
+                break
+                #continue
+            #print(new_offset-offset)
+    
+    return (False,sol,offset)
+
+def search_local_all(var_count,sol,offset,clauses,start):
+    #print(offset,sol)
+    #print(offset,sol)
+    #limit = int(var_count*per/100)
+    #print(limit)
+    #count = 0
+    #offsets = []
+    #print("hop")
+    #while(True):
+    
+    while (True):
+        #count = 0
+        changed = False
+        #print("aaaaaa")
+        #while(True):
+        #print(offset,sol)
+        #print("yeni",count)
+        better = (offset,var_count)
+        for i in range(0,len(sol)):
+            #count += 1
+            #temp = get_random_neighbour(sol.copy())
+            temp = get_specific_neighbour(sol.copy(),i)
+            metric = evaluate(clauses,temp)
+            new_offset = clause_count-metric
+            #offsets.append(new_offset)
+            #print(new_offset,end=" ")
+            if (new_offset == 0):
+                #print ("FOUND")
+                return (True,temp,new_offset)
+            
+            if (new_offset < better[0]):
+                #print("hop",i)
+                changed = True
+                better = (new_offset,i)
+                #sol = temp.copy()
+                #offset = new_offset
+                #print(offset)
+                #break
+                #continue
+            #print(new_offset-offset)
+        
+        if changed:
+            temp = get_specific_neighbour(sol.copy(),better[1])
+            sol = temp.copy()
+            offset = better[0]
+            continue
+        return (False,sol,offset)
+
+
+    return (False,sol,offset)
 
 
 def get_specific_neighbour(temp,change):
@@ -141,10 +213,20 @@ def get_random_neighbour(temp):
     temp[change] = 1- temp[change]
     return temp
 
+def print_sol(sol):
+    print("c Turkish Muscle")
+    print("s SATISFIABLE")
+    print("v",end=" ")
+    for i in range(0,len(sol)):
+        if (sol[i]==1):
+            print(i+1,end=" ")
+        else:
+            print(-1*(i+1),end=" ")
+    print("0\n")
 
 
 if __name__ == '__main__' :
-    random.seed(1)
+    #random.seed(1)
     start_time = time.time()
 
 
@@ -153,31 +235,42 @@ if __name__ == '__main__' :
         sys.exit()
     benchmark = sys.argv[1]
     
-
+    #read data
     var_count,clause_count,clauses = readData(benchmark)
     
+    #find first guesses
+    found,instances = try_and_remember(var_count,clause_count,clauses,start_time,cutoff=2,best_count=10)
 
-    found,instances = try_and_remember(var_count,clause_count,clauses,start_time)
+
     if found:
         print("found")
         print(instances)
     else:
-        print(instances[0][0],var_count)
-        local_start_time = time.time()
-        #start local search
-        print (min(search_local_random(var_count,instances[0][1],instances[0][0],clauses,local_start_time)))
-        #print (min(search_local_all(var_count,instances[0][1],instances[0][0],clauses)))
-        #print(instances)
-    
+        for i in instances:
+            print(i[0])
+        print("\n")
+        second_guesses = []
+        for i in range(0,len(instances)):
+
+            local_start_time = time.time()
+            #start local search
+            stat,sol,offset = search_local_all(var_count,instances[i][1],instances[i][0],clauses,local_start_time)
+            #stat,sol,offset = search_local_random(var_count,instances[i][1],instances[i][0],clauses,local_start_time)
+            if stat:
+                #found
+                print_sol(sol)
+                second_guesses.append((offset,sol))
+                break
+            second_guesses.append((offset,sol))
+        
+        for i in second_guesses:
+            print(i[0])
+        
         
     
     print(time.time() - start_time)
 
-    #init_guess = [True,True,True,True,True]
-    #print(get_neighbour(init_guess))
-    #init_guess = [False,False,False,False,False]
-    #a = evaluate(clauses,init_guess)
-    #print(a)
+   
     
 
 '''
