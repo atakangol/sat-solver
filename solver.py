@@ -9,8 +9,8 @@ import random
 import math
 
 ######
-#local search
-#size copmrasion true fale ve 01 arasında bit farkı yok (saçmalık) 01 daha rahat , linux da da yok
+
+
 ######
 
 
@@ -201,7 +201,6 @@ def search_local_all(var_count,sol,offset,clauses,start):
 
     return (False,sol,offset)
 
-
 def get_specific_neighbour(temp,change):
     temp[change] = 1- temp[change]
     return temp
@@ -212,6 +211,36 @@ def get_random_neighbour(temp):
     #sol[change] = not(sol[change] )
     temp[change] = 1- temp[change]
     return temp
+
+def get_random_neighbourhood(temp,changes):
+    
+    for i in range(0,changes):
+
+        change = random.randint(0,len(temp)-1)
+        temp[change] = 1- temp[change]
+    return temp
+
+def neighbourhood_search(var_count,sol,offset,clauses,limit,per = 20):
+    start = time.time()
+    to_change = math.floor((var_count/100)*per)
+    while (time.time() - start  < limit):
+        while (time.time() - start  < limit):
+            temp = get_random_neighbourhood(sol.copy(),random.randint(2,to_change))
+            metric = evaluate(clauses,temp)
+            new_offset = clause_count-metric
+            print(new_offset,end = " ")
+            if (new_offset == 0):
+                #print ("FOUND",sol)
+                return (True,temp,new_offset)
+            
+            if (new_offset < offset):
+                    print("hop")
+
+                    sol = temp.copy()
+                    offset = new_offset
+                    #print(offset)
+                    break
+    return
 
 def print_sol(sol):
     print("c Turkish Muscle")
@@ -228,7 +257,7 @@ def print_sol(sol):
 if __name__ == '__main__' :
     #random.seed(1)
     start_time = time.time()
-
+    time_limit = 10
 
     if len(sys.argv) != 2:
         sys.exit("Use: %s <benchmark> ")
@@ -239,12 +268,12 @@ if __name__ == '__main__' :
     var_count,clause_count,clauses = readData(benchmark)
     
     #find first guesses
-    found,instances = try_and_remember(var_count,clause_count,clauses,start_time,cutoff=2,best_count=10)
+    found,instances = try_and_remember(var_count,clause_count,clauses,start_time,cutoff=2,best_count=5)
 
 
     if found:
-        print("found")
-        print(instances)
+        #print("found")
+        print_sol(instances)
     else:
         for i in instances:
             print(i[0])
@@ -260,23 +289,19 @@ if __name__ == '__main__' :
                 #found
                 print_sol(sol)
                 second_guesses.append((offset,sol))
-                break
+                sys.exit()
             second_guesses.append((offset,sol))
         
         for i in second_guesses:
-            print(i[0])
-        
-        
+            print(i)
+        best = (min(second_guesses))
+        remaining_time = math.floor(time_limit-time.time() + start_time)
+
+        neighbourhood_search(var_count,best[1],best[0],clauses,remaining_time)
+    
     
     print(time.time() - start_time)
 
    
     
 
-'''
-    guess = random_guesser(100)
-    print(guess)
-    search_local(100,guess)
-    print(time.time() - start_time)
-    '''
-    
