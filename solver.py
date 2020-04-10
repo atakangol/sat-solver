@@ -86,7 +86,8 @@ def try_and_remember(var_count,clause_count,clauses,start,cutoff=2,best_count=5)
         best.append((offset,counter))
         counter+=1
         if (offset == 0 ):
-            return(True,sol)   #not likely
+            print_sol(sol)
+            sys.exit()   #not likely
         #print(time.time() - start)
         if (time.time() - start  >= cutoff): #try for x seconds
             break
@@ -103,7 +104,7 @@ def try_and_remember(var_count,clause_count,clauses,start,cutoff=2,best_count=5)
     #print(all_sol.keys())
     #print(len(all_sol))
     #print(time.time() - start)
-    return (False,best_sol)
+    return (best_sol)
 
 def search_local_random(var_count,sol,offset,clauses,start,cutoff=300,per = 75):
     #print(offset,sol)
@@ -177,8 +178,9 @@ def search_local_all(var_count,sol,offset,clauses,start):
             #offsets.append(new_offset)
             #print(new_offset,end=" ")
             if (new_offset == 0):
-                #print ("FOUND")
-                return (True,temp,new_offset)
+                if (offset == 0 ):
+                    print_sol(sol)
+                    sys.exit()
             
             if (new_offset < better[0]):
                 #print("hop",i)
@@ -196,10 +198,10 @@ def search_local_all(var_count,sol,offset,clauses,start):
             sol = temp.copy()
             offset = better[0]
             continue
-        return (False,sol,offset)
+        return (sol,offset)
 
 
-    return (False,sol,offset)
+    return (sol,offset)
 
 def get_specific_neighbour(temp,change):
     temp[change] = 1- temp[change]
@@ -269,37 +271,29 @@ if __name__ == '__main__' :
     var_count,clause_count,clauses = readData(benchmark)
     
     #find first guesses
-    found,instances = try_and_remember(var_count,clause_count,clauses,start_time,cutoff=2,best_count=5)
+    instances = try_and_remember(var_count,clause_count,clauses,start_time,cutoff=2,best_count=5)
 
 
-    if found:
-        #print("found")
-        print_sol(instances)
-    else:
-        for i in instances:
-            print(i[0])
-        print("\n")
-        second_guesses = []
-        for i in range(0,len(instances)):
+    #for i in instances:
+        #print(i[0])
+    #print("\n")
+    second_guesses = []
+    for i in range(0,len(instances)):
 
-            local_start_time = time.time()
-            #start local search
-            stat,sol,offset = search_local_all(var_count,instances[i][1],instances[i][0],clauses,local_start_time)
-            #stat,sol,offset = search_local_random(var_count,instances[i][1],instances[i][0],clauses,local_start_time)
-            if stat:
-                #found
-                print_sol(sol)
-                second_guesses.append((offset,sol))
-                sys.exit()
-            second_guesses.append((offset,sol))
-        
-        for i in second_guesses:
-            print(i)
-        best = (min(second_guesses))
-        remaining_time = math.floor(time_limit-time.time() + start_time)
-
-        neighbourhood_search(var_count,best[1],best[0],clauses,remaining_time)
+        local_start_time = time.time()
+        #start local search
+        sol,offset = search_local_all(var_count,instances[i][1],instances[i][0],clauses,local_start_time)
+        #stat,sol,offset = search_local_random(var_count,instances[i][1],instances[i][0],clauses,local_start_time)
+        second_guesses.append((offset,sol))
     
+    #for i in second_guesses:
+        #print(i)
+    best = (min(second_guesses))
+    print(best[0])
+    #remaining_time = math.floor(time_limit-time.time() + start_time)
+
+    #neighbourhood_search(var_count,best[1],best[0],clauses,remaining_time)
+
     
     print(time.time() - start_time)
 

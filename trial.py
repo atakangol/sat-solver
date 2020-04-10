@@ -35,97 +35,6 @@ def readData(name): #reads the file and returns the relevant data
     #print(clauses)
     return(var_count,clause_count,clauses)
 
-def readnanalize(name):
-    with open(name, mode='r') as cnf_file:
-        i=0
-        clauses = []
-        var_map = {}
-        for line in cnf_file:
-            if (i==0):
-                header = line.split(' ')
-                var_count = int(header[2])
-                i += 1
-                for c in range(0,var_count):
-                    var_map[c] = 0
-                #print(counts)
-            else:
-                temp = line.split(' ')[:3]
-                temp = list(map(int,temp))
-                clauses.append(temp)
-                for c in temp:
-                    var_map[abs(c)-1] += 1
-
-    #print(counts)
-    var_map = dict(sorted(var_map.items(), key = lambda kv:(kv[1], kv[0])))
-    #var_map = dict(sorted(var_map.items(), key = lambda kv:(kv[1], kv[0]),reverse=True))
-    print(var_map)
-    var_map = list(var_map.keys())
-    #var_map = merge_lists(var_map[0:int(len(var_map)/2)],var_map[int(len(var_map)/2):])
-    clause_count = len(clauses)
-    return(var_count,clause_count,clauses,var_map)
-
-def merge_lists(litem1,litem2):
-    
-    merged = []
-    l = min(len(litem1),len(litem2))
-    for i in range(0,int(l/3)):
-        a = litem1.pop(0)
-        merged.append(a)
-        a = litem1.pop(0)
-        merged.append(a)
-        a = litem1.pop(0)
-        merged.append(a)
-
-
-        a = litem2.pop()
-        merged.append(a)
-    if(len(litem1)>0):
-        l=len(litem1)
-        for i in range(0,l):
-            a = litem1.pop(0)
-            merged.append(a)
-    if(len(litem2)>0):
-        l=len(litem2)
-        for i in range(0,l):
-            a = litem2.pop(0)
-            merged.append(a)
-    return(merged)
-
-
-
-def evaluate_assumption(clauses,solution,assumed):
-    #true_count = 0
-    #print(solution)
-    for clause in clauses:
-        false_count = 0
-        #next_clause = False
-        #print(clause)
-        #print()
-        variables = []
-        for var in clause:
-            variables.append(abs(var))
-        if (compare_lists(variables,assumed)): #in assumption
-            #print("hop",clause)
-            for var in clause:
-                real = abs(var)-1 
-                #print(real)
-                target = 1
-                if (var<0): target =0
-                if (solution[real]!=target):
-                    #satisfied
-                    #print("-")
-                    false_count += 1
-                    #return(True)
-            if(false_count==3):
-                return(False)
-    return (True)
-
-def compare_lists(small,big):
-    for i in small:
-        if (i not in big):
-            return False
-    return True
-
 def evaluate(clauses,solution): #returns the number of clauses this solution satisfies
     true_count = 0
     for clause in clauses:
@@ -140,22 +49,53 @@ def evaluate(clauses,solution): #returns the number of clauses this solution sat
     #print(" ")
     return(true_count)
 
-def ahead(assumed,var_map):
+def random_guesser(var_count): #returns a random guess of a specified length
     
-    assumed.append(var_map[len(assumed)]+1)  
+    poss = [0,1]
+    #poss = [False,True]
+    guess = []
 
-    return assumed
+    for i in range(0,var_count):
+        guess.append(random.choice(poss))
+    
+    return guess
 
-def backtrack(solution,assumed,var_map):
-    last = assumed[-1]
-    if(solution[last-1]==0):
-        solution[last-1] = 1
-        return()
-    else:
-        solution[last-1]=0
-        a = assumed.pop()
-        #print("a",a)
-        return(backtrack(solution,assumed,var_map))
+def try_and_remember(var_count,clause_count,clauses,start,cutoff=2,best_count=5): #returns either the solution (unlikely) or the top solutions with the wrong count
+    metric = 0
+    counter = 0
+    #all_sol = {}
+    all_sol = []
+    best = []
+
+    while(True):
+        sol = random_guesser(var_count)
+        metric = evaluate(clauses,sol)
+        offset = clause_count-metric
+        #print("offset:",clause_count-metric)
+        #all_sol[clause_count-metric] = sol
+        all_sol.append((offset,sol))
+        best.append((offset,counter))
+        counter+=1
+        if (offset == 0 ):
+            print_sol(sol)
+            sys.exit()   #not likely
+        #print(time.time() - start)
+        if (time.time() - start  >= cutoff): #try for x seconds
+            break
+    
+    #print(time.time() - start)
+    best = sorted(best) 
+    #best = best[:math.floor(len(best)/10)]
+    best = best[:best_count]
+    best_sol = []
+    for i in best:
+        best_sol.append(all_sol[i[1]]) 
+    #offsets = sorted(all_sol)
+    #offsets = offsets[:math.ceil(len(offsets)/10)]
+    #print(all_sol.keys())
+    #print(len(all_sol))
+    #print(time.time() - start)
+    return (best_sol)
 
 def search_local_random(var_count,sol,offset,clauses,start,cutoff=300,per = 75):
     #print(offset,sol)
@@ -264,8 +204,32 @@ def get_random_neighbour(temp):
     temp[change] = 1- temp[change]
     return temp
 
+def get_random_neighbourhood(temp,changes):
+    change = random.sample(range(0,len(temp)-1),changes)
+    for i in change:
+        temp[i] = 1- temp[i]
+    return temp
+
+
+def neighbourhood_search(var_count,sol,clauses,per = 5):
+    #start = time.time()
+    to_change = math.floor((var_count/100)*per)
+    target = var_count - evaluate(clauses,sol)
+    
+    while(True):
+        new_sol = get_random_neighbourhood(sol.copy(),to_change)
+        new_offset = clause_count- evaluate(clauses,new_sol)
+        #print(new_offset,end="  ")
+        if(new_offset == 0):
+            print_sol(sol)
+            sys.exit()
+        elif(new_offset <= target ):
+            return(True,new_sol)
+
+    return(False,sol)
 
 def print_sol(sol):
+    print(sol)
     print("c Turkish Muscle")
     print("s SATISFIABLE")
     print("v",end=" ")
@@ -288,42 +252,22 @@ if __name__ == '__main__' :
     benchmark = sys.argv[1]
     
     #read data
-    var_count,clause_count,clauses,var_map = readnanalize(benchmark)
-    #print(var_map)
-    assumed = []
-    guess = []
-    for i in range(0,var_count):
-        guess.append(0)
-
-
-    #print(assumed,len(assumed))
-    while (len(assumed)<=var_count):
-        #print(len(assumed), end = " ")
-        if (len(assumed)>=60):
-            break
-        a = evaluate_assumption(clauses,guess,assumed)
-        #print(a)
-        if (a == True):
-            if(len(assumed)==var_count):
-                break
-            ahead(assumed,var_map)
-        else:
-            
-            backtrack(guess,assumed,var_map)
-
-           # print(guess)
-            #print(assumed)
-        
-            
-    print(guess)
-    print(clause_count-evaluate(clauses,guess))
-    print(time.time() - start_time)
-    start = time.time()
-    #stat,sol,offset = search_local_random(var_count,guess,clause_count-evaluate(clauses,guess),clauses,start)
-    stat,sol,offset = search_local_all(var_count,guess,clause_count-evaluate(clauses,guess),clauses,start)
-    print(offset,sol)
-    print(time.time() - start_time)
-
-   
+    var_count,clause_count,clauses = readData(benchmark)
     
+    #find first guesses
+    
+    instances = try_and_remember(var_count,clause_count,clauses,start_time,cutoff=0.5,best_count=1)
 
+    print(instances[0][0])
+    start = time.time()
+    found,sol,current_offset =  search_local_all(var_count,instances[0][1],instances[0][0],clauses,start)
+    print(current_offset)
+
+    print(time.time() - start_time)
+    #start = time.time()
+    print(neighbourhood_search(var_count,sol.copy(),clauses))
+
+
+
+
+    print(time.time() - start_time)

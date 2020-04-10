@@ -14,7 +14,7 @@ import math
 ######
 
 
-#python better_conflict.py "C:\Users\golat\Documents\Git\sat-solver\benchmarks\cnf-100-200-0.cnf"
+#python conflict_final.py "C:\Users\golat\Documents\Git\sat-solver\benchmarks\cnf-100-200-0.cnf"
 
 def readData(name): #reads the file and returns the relevant data
     with open(name, mode='r') as cnf_file:
@@ -35,63 +35,68 @@ def readData(name): #reads the file and returns the relevant data
     #print(clauses)
     return(var_count,clause_count,clauses)
 
-def readnanalize(name):
+def readnprob(name): #reads and looks and more 0s or 1s
     with open(name, mode='r') as cnf_file:
         i=0
         clauses = []
+        probs = []
+        positives = []
+        negatives = []
         var_map = {}
         for line in cnf_file:
             if (i==0):
                 header = line.split(' ')
                 var_count = int(header[2])
-                i += 1
+                i +=1
                 for c in range(0,var_count):
                     var_map[c] = 0
-                #print(counts)
+                    probs.append(0)
             else:
                 temp = line.split(' ')[:3]
                 temp = list(map(int,temp))
                 clauses.append(temp)
                 for c in temp:
                     var_map[abs(c)-1] += 1
+                    if (c>0):
+                        probs[abs(c)-1] +=1
+                    elif( (c<0)):
+                        probs[abs(c)-1] -=1    
 
-    #print(counts)
-    var_map = dict(sorted(var_map.items(), key = lambda kv:(kv[1], kv[0])))
-    #var_map = dict(sorted(var_map.items(), key = lambda kv:(kv[1], kv[0]),reverse=True))
-    print(var_map)
+
+
+    for i in range(0,len(probs)):
+        if (probs[i]>0):
+            positives.append(i)
+        elif(probs[i]<=0):
+            negatives.append(i)
+        #else:
+            #x = random.choice([0,1])
+            #if (x == 0):
+                #negatives.append(i)
+            #else:
+                #positives.append(i)
+
+    #var_map = dict(sorted(var_map.items(), key = lambda kv:(kv[1], kv[0])))
+    var_map = dict(sorted(var_map.items(), key = lambda kv:(kv[1], kv[0]),reverse =True))
     var_map = list(var_map.keys())
-    #var_map = merge_lists(var_map[0:int(len(var_map)/2)],var_map[int(len(var_map)/2):])
-    clause_count = len(clauses)
-    return(var_count,clause_count,clauses,var_map)
-
-def merge_lists(litem1,litem2):
     
-    merged = []
-    l = min(len(litem1),len(litem2))
-    for i in range(0,int(l/3)):
-        a = litem1.pop(0)
-        merged.append(a)
-        a = litem1.pop(0)
-        merged.append(a)
-        a = litem1.pop(0)
-        merged.append(a)
+    clause_count = len(clauses)
 
+    return(var_count,clause_count,clauses,var_map,positives,negatives)
 
-        a = litem2.pop()
-        merged.append(a)
-    if(len(litem1)>0):
-        l=len(litem1)
-        for i in range(0,l):
-            a = litem1.pop(0)
-            merged.append(a)
-    if(len(litem2)>0):
-        l=len(litem2)
-        for i in range(0,l):
-            a = litem2.pop(0)
-            merged.append(a)
-    return(merged)
-
-
+def evaluate(clauses,solution): #returns the number of clauses this solution satisfies
+    true_count = 0
+    for clause in clauses:
+        for var in clause:
+            real = abs(var)-1 
+            #print(real,end=" ")
+            target = 1
+            if (var<0): target =0
+            if (solution[real]==target):
+                true_count = true_count +1
+                break
+    #print(" ")
+    return(true_count)
 
 def evaluate_assumption(clauses,solution,assumed):
     #true_count = 0
@@ -140,22 +145,30 @@ def evaluate(clauses,solution): #returns the number of clauses this solution sat
     #print(" ")
     return(true_count)
 
-def ahead(assumed,var_map):
+def ahead(assumed,var_map,positives,guess):
+    new = var_map[len(assumed)]
+    if (new in positives ):
+        guess[new] = 1
     
     assumed.append(var_map[len(assumed)]+1)  
 
     return assumed
 
-def backtrack(solution,assumed,var_map):
+def backtrack(solution,assumed,var_map,positives):
     last = assumed[-1]
-    if(solution[last-1]==0):
-        solution[last-1] = 1
+    if (last-1 in positives):
+        target = 1
+    else:
+        target =0
+    if(solution[last-1]==target):
+        solution[last-1] = 1-target
         return()
     else:
         solution[last-1]=0
         a = assumed.pop()
         #print("a",a)
-        return(backtrack(solution,assumed,var_map))
+        return(backtrack(solution,assumed,var_map,positives))
+
 
 def search_local_random(var_count,sol,offset,clauses,start,cutoff=300,per = 75):
     #print(offset,sol)
@@ -264,35 +277,6 @@ def get_random_neighbour(temp):
     temp[change] = 1- temp[change]
     return temp
 
-def get_random_neighbourhood(temp,changes):
-    
-    for i in range(0,changes):
-
-        change = random.randint(0,len(temp)-1)
-        temp[change] = 1- temp[change]
-    return temp
-
-def neighbourhood_search(var_count,sol,offset,clauses,limit,per = 20):
-    start = time.time()
-    to_change = math.floor((var_count/100)*per)
-    while (time.time() - start  < limit):
-        while (time.time() - start  < limit):
-            temp = get_random_neighbourhood(sol.copy(),random.randint(2,to_change))
-            metric = evaluate(clauses,temp)
-            new_offset = clause_count-metric
-            #print(new_offset,end = " ")
-            if (new_offset == 0):
-                print ("FOUND",sol)
-                return (True,temp,new_offset)
-            
-            if (new_offset < offset):
-                    print("hop")
-
-                    sol = temp.copy()
-                    offset = new_offset
-                    #print(offset)
-                    break
-    return
 
 def print_sol(sol):
     print("c Turkish Muscle")
@@ -317,43 +301,96 @@ if __name__ == '__main__' :
     benchmark = sys.argv[1]
     
     #read data
-    var_count,clause_count,clauses,var_map = readnanalize(benchmark)
+    var_count,clause_count,clauses,var_map,positives,negatives = readnprob(benchmark)
+    
     #print(var_map)
-    assumed = []
+    #print(positives)
+    #print(negatives)
+    #print()
     guess = []
     for i in range(0,var_count):
         guess.append(0)
+    assumed = []
+    x = int(var_count*10/100)
+    #print(x)
+    old =[]
+    for i in range(0,x):
+        old.append(-10)
+    #print(old)
+    counter = 0
+    best = [0,guess.copy()]
+    temp_best = guess.copy()
+    #while (len(assumed)<=var_count):
+    while(len(assumed) >= old[counter]):
+        #input()
+        if len(assumed) > 0:
+            if (len(assumed) >= max(old)):
+                #print(len(assumed) , max(assumed))
+                #print(guess)
+                #print(temp_best)
+                temp_best = guess.copy()
+            if (len(assumed)>best[0]):
+                #print("______")
+                #print(len(assumed),best[0])
+                #print(guess)
+                #print(best[1])
+                best[0]= len(assumed)
+                best[1] = guess.copy()
+        old[counter] = len(assumed)
+        counter += 1
+        counter %= x
+        #if (len(assumed)>=70):
+        #    break
 
-
-    #print(assumed,len(assumed))
-    while (len(assumed)<=var_count):
-        #print(len(assumed), end = " ")
-        print(assumed)
-        if (len(assumed)>=60):
-            break
         a = evaluate_assumption(clauses,guess,assumed)
-        #print(a)
+
         if (a == True):
-            if(len(assumed)==var_count):
+            if(len(assumed)>=var_count):
                 break
-            ahead(assumed,var_map)
+            ahead(assumed,var_map,positives,guess)
         else:
             
-            backtrack(guess,assumed,var_map)
+            backtrack(guess,assumed,var_map,positives)
 
-           # print(guess)
-            #print(assumed)
-        
-            
-    print(guess)
+    print("guess")
+    #print(guess)
     print(clause_count-evaluate(clauses,guess))
-    print(time.time() - start_time)
     start = time.time()
     #stat,sol,offset = search_local_random(var_count,guess,clause_count-evaluate(clauses,guess),clauses,start)
     stat,sol,offset = search_local_all(var_count,guess,clause_count-evaluate(clauses,guess),clauses,start)
-    print(offset,sol)
-    print(time.time() - start_time)
+    #print(offset,sol)
+    print(offset)
+    print()
+    
+    
+    print("best")
+    #print(best[1])
+    print(clause_count-evaluate(clauses,best[1]))
+    start = time.time()
+    #stat,sol,offset = search_local_random(var_count,guess,clause_count-evaluate(clauses,guess),clauses,start)
+    stat,sol,offset = search_local_all(var_count,best[1],clause_count-evaluate(clauses,best[1]),clauses,start)
+    #print(offset,sol)
+    print(offset)   
+    
+    
+    print()
+    print("local")
+    #print(temp_best)
+    print(clause_count-evaluate(clauses,temp_best))
+    start = time.time()
+    #stat,sol,offset = search_local_random(var_count,guess,clause_count-evaluate(clauses,guess),clauses,start)
+    stat,sol,offset = search_local_all(var_count,temp_best,clause_count-evaluate(clauses,temp_best),clauses,start)
+    #print(offset,sol)
+    print(offset)
+    print()
 
-   
+
+    print(time.time() - start_time)
+    #start = time.time()
+    #stat,sol,offset = search_local_random(var_count,guess,clause_count-evaluate(clauses,guess),clauses,start)
+    #stat,sol,offset = search_local_all(var_count,guess,clause_count-evaluate(clauses,guess),clauses,start)
+    #print(offset,sol)
+    #print(time.time() - start_time)
+
     
 
