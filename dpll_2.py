@@ -7,6 +7,7 @@ import os
 import time
 import random
 import math
+from copy import deepcopy
 
 ######
 
@@ -124,61 +125,35 @@ def check_empty(clauses_set):
 
 def dpll(clauses,var_count,limit):
     start_time = time.time()
+    current_sol = {}
+    step = 0
+    old_clauses = {}
+    current_clauses = deepcopy(clauses)
     assigned = []
-    b = False
-    clauses_backtrack=[]
-    clauses_set = clauses.copy()
     not_assigned = []
     for i in range(1,var_count+1):
         not_assigned.append(i)
-    current_sol = {}
-    x = 0
-    while(True):
-    #while(time.time()-start_time < limit):    
-        extra = []
-        
-        if (len(not_assigned) == 0):
-            #print(current_sol)
-            print(evaluate(clauses,current_sol),clause_count)
-            print_sol(current_sol)
-            return
-        clauses_backtrack.append(clauses_set.copy())
+
+
+    while (True):
+        old_clauses[step] = deepcopy(current_clauses)
 
         i = random.randint(0,len(not_assigned))
+        var = not_assigned.pop(i-1)
         
-       
-        #print((len(assigned),len(not_assigned),len(assigned)+len(not_assigned)))
+        guess = 0
+        if (var in positives): 
+            guess = 1
+            actual_var = -1*var
         
 
-        #x = not_assigned.pop(-1)
-        x = not_assigned.pop(i-1)
-        assigned.append(x)
-        #print(x)
-        print(len(assigned+not_assigned))
-        #if (len(not_assigned)<7):print(clauses_set)
-        current_sol,clauses_set = ahead(x,current_sol.copy(),clauses_set.copy())
-        
-        #unit
-        #append extra
-        ##pure literal
 
-        if check_empty(clauses_set):
-            #bactrack once , change 1 assumption
-            clauses_set = clauses_backtrack.pop().copy()
-            current_sol,clauses_set = ahead(x,current_sol.copy(),clauses_set.copy(),g=False)
-            
 
-            if check_empty(clauses_set):
-                #backtrack more , delete assumption
-                current_sol.pop(x)
-                #not_assigned.append(x)
-                #assigned.pop()
-                not_assigned.append(assigned.pop())
-                not_assigned.append(assigned.pop())
 
-                clauses_set = clauses_backtrack.pop().copy()
-                #continue
-                
+        step += 1
+
+
+
 
 def ahead(var,current_sol,clauses_set,g=True):
     #print("----cs",clauses_set)

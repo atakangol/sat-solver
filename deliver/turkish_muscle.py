@@ -1,5 +1,14 @@
 #!/usr/bin/python3
 
+########
+#Turkish Muscle
+
+
+#Atakan GÖL
+#Hatice Hüma Kalaycı
+########
+
+
 # Libraries
 
 import sys
@@ -14,7 +23,7 @@ import math
 ######
 
 
-#python dpll.py "C:\Users\golat\Documents\Git\sat-solver\benchmarks\uf100-01.cnf"
+#python turkish_muscle.py "C:\Users\golat\Documents\Git\sat-solver\benchmarks\uf100-01.cnf"
 
 def readData(name): #reads the file and returns the relevant data
     with open(name, mode='r') as cnf_file:
