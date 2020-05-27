@@ -14,7 +14,7 @@ import math
 ######
 
 
-#python solver.py "C:\Users\golat\Documents\Git\sat-solver\benchmarks\cnf-100-200-0.cnf"
+#python local_search.py "C:\Users\golat\Documents\Git\sat-solver\benchmarks\cnf-100-200-0.cnf"
 
 def readData(name): #reads the file and returns the relevant data
     with open(name, mode='r') as cnf_file:
@@ -227,7 +227,7 @@ if __name__ == '__main__' :
     var_count,clause_count,clauses = readData(benchmark)
     
     #find first guesses
-    num_of_first_guesses = 2
+    num_of_first_guesses = 1
     instances = try_and_remember(var_count,clause_count,clauses,start_time,cutoff=0.5,best_count=num_of_first_guesses)
     
     second_guesses = []

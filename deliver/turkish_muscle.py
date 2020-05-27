@@ -1,14 +1,5 @@
 #!/usr/bin/python3
 
-########
-#Turkish Muscle
-
-
-#Atakan GÖL
-#Hatice Hüma Kalaycı
-########
-
-
 # Libraries
 
 import sys
@@ -23,7 +14,7 @@ import math
 ######
 
 
-#python turkish_muscle.py "C:\Users\golat\Documents\Git\sat-solver\benchmarks\uf100-01.cnf"
+#python local_search.py "C:\Users\golat\Documents\Git\sat-solver\benchmarks\cnf-100-200-0.cnf"
 
 def readData(name): #reads the file and returns the relevant data
     with open(name, mode='r') as cnf_file:
@@ -44,204 +35,141 @@ def readData(name): #reads the file and returns the relevant data
     #print(clauses)
     return(var_count,clause_count,clauses)
 
-def print_sol(sol): #dict(1-100)
+def evaluate(clauses,solution): #returns the number of clauses this solution satisfies
+    true_count = 0
+    for clause in clauses:
+        for var in clause:
+            real = abs(var)-1 
+            #print(real,end=" ")
+            target = 1
+            if (var<0): target =0
+            if (solution[real]==target):
+                true_count = true_count +1
+                break
+    #print(" ")
+    return(true_count)
+
+def random_guesser(var_count): #returns a random guess of a specified length
+    
+    poss = [0,1]
+    #poss = [False,True]
+    guess = []
+
+    for i in range(0,var_count):
+        guess.append(random.choice(poss))
+    
+    return guess
+
+def try_and_remember(var_count,clause_count,clauses,start,cutoff=2,best_count=5): #returns either the solution (unlikely) or the top solutions with the wrong count
+    metric = 0
+    counter = 0
+    #all_sol = {}
+    all_sol = []
+    best = []
+
+    while(True):
+        sol = random_guesser(var_count)
+        metric = evaluate(clauses,sol)
+        offset = clause_count-metric
+        #print("offset:",clause_count-metric)
+        #all_sol[clause_count-metric] = sol
+        all_sol.append((offset,sol))
+        best.append((offset,counter))
+        counter+=1
+        if (offset == 0 ):
+            print_sol(sol)
+            sys.exit()   #not likely
+        #print(time.time() - start)
+        if (time.time() - start  >= cutoff): #try for x seconds
+            break
+    
+    #print(time.time() - start)
+    best = sorted(best) 
+    #best = best[:math.floor(len(best)/10)]
+    best = best[:best_count]
+    best_sol = []
+    for i in best:
+        best_sol.append(all_sol[i[1]]) 
+    #offsets = sorted(all_sol)
+    #offsets = offsets[:math.ceil(len(offsets)/10)]
+    #print(all_sol.keys())
+    #print(len(all_sol))
+    #print(time.time() - start)
+    return (best_sol)
+
+def search_local_random(var_count,sol,offset,clauses,limit):
+    local_start_time = time.time()
+    old = var_count
+    #print(offset)
+    while (time.time()-local_start_time < limit):
+        vars =list( range(0,len(sol)))
+        random.shuffle(vars)
+        #input("-")
+        best = [clause_count,var_count]
+        changed = False
+
+
+        for i in vars:
+            
+            new_sol = get_specific_neighbour(sol.copy(),i)
+            metric = evaluate(clauses,new_sol)
+            new_offset = clause_count-metric
+            #print(offset,best[0])
+            #print(new_offset)
+            #print(i)
+            #input("--")
+            if (new_offset == 0):
+                print_sol(new_sol)
+                sys.exit()
+            
+            if (new_offset < offset) and (i != old):
+                offset = new_offset
+                sol = new_sol.copy()
+                changed = True
+                break
+            
+            else:
+                 if (new_offset <= best[0])  and (i != old): 
+                    #print("bbb")
+                    best[0] = new_offset
+                    best[1] = i
+        if (changed):
+            continue
+        temp = get_specific_neighbour(sol.copy(),best[1])
+        sol = temp.copy()
+        offset = best[0]
+        old = best[1]
+        #print("aaa",old)
+
+            
+
+    return (sol,offset)
+
+def get_specific_neighbour(temp,change):
+    temp[change] = 1- temp[change]
+    return temp
+
+def print_sol(sol):
     #print(sol)
     print("c Turkish Muscle")
     print("s SATISFIABLE")
     print("v",end=" ")
-    for i in range(1,len(sol)+1):
+    for i in range(0,len(sol)):
         if (sol[i]==1):
-            print(i,end=" ")
+            print(i+1,end=" ")
         else:
-            print(-1*(i),end=" ")
+            print(-1*(i+1),end=" ")
     print("0\n")
     sys.exit()
 
-def readnprob(name): #reads and looks and more 0s or 1s
-    with open(name, mode='r') as cnf_file:
-        i=0
-        clauses = []
-        probs = []
-        positives = []
-        #negatives = []
-        #var_map = {}
-        for line in cnf_file:
-            if (i==0):
-                header = line.split(' ')
-                var_count = int(header[2])
-                i +=1
-                for c in range(0,var_count):
-                    #var_map[c] = 0
-                    probs.append(0)
-            else:
-                temp = line.split(' ')[:3]
-                temp = list(map(int,temp))
-                clauses.append(temp)
-                for c in temp:
-                    #var_map[abs(c)-1] += 1
-                    if (c>0):
-                        probs[abs(c)-1] +=1
-                    elif( (c<0)):
-                        probs[abs(c)-1] -=1    
-
-
-
-    for i in range(0,len(probs)):
-        if (probs[i]>0):
-            positives.append(i+1)
-        #elif(probs[i]<=0):
-            #negatives.append(i)
-        #else:
-            #x = random.choice([0,1])
-            #if (x == 0):
-                #negatives.append(i)
-            #else:
-                #positives.append(i)
-
-    #var_map = dict(sorted(var_map.items(), key = lambda kv:(kv[1], kv[0])))
-    #var_map = dict(sorted(var_map.items(), key = lambda kv:(kv[1], kv[0]),reverse =True))
-    #var_map = list(var_map.keys())
-    
-    clause_count = len(clauses)
-
-    return(var_count,clause_count,clauses,positives)
-
-def remove_clauses(clauses_set,var):
-    i=0
-    while(i<len(clauses_set)):
-        clause = clauses_set[i]
-        if (var in clause):
-            clauses_set.pop(i)
-            continue
-        i += 1
-    return (clauses_set)
-
-def remove_literals(clauses_set,var):
-    var = (-1)* var
-    to_return = []
-    for clause in clauses_set:
-        c = clause.copy()
-        if (var in c):
-            c.pop(c.index(var))
-        to_return.append(c)
-            
-
-    return (to_return)
-
-def unit_propagation(clauses_set):
-    for clause in clauses_set:
-        if (len(clause) == 1):
-            #found unit
-            return (clause[0])
-    return(None)
-      
-def check_empty(clauses_set):
-    for clause in clauses_set:
-        if (len(clause) == 0):
-            return True
-    return False
-
-def dpll(clauses,var_count,limit):
-    start_time = time.time()
-
-
-    clauses_backtrack=[]
-    clauses_set = clauses.copy()
-    not_assigned = []
-    for i in range(1,var_count+1):
-        not_assigned.append(i)
-    current_sol = {}
-    x = 0
-    #while(True):
-    while(time.time()-start_time < limit):    
-       
-        #1
-        if (len(not_assigned) == 0):
-            print_sol(current_sol)
-        clauses_backtrack.append(clauses_set.copy())
-        #print(i)
-        i = random.randint(0,len(not_assigned))
-        #print(i)
-        x = not_assigned.pop(i-1)
-        
-
-        
-        #for i in clauses_backtrack:
-            #print(i)
-        #print(current_sol)
-        #input()
-        
-
-
-        guess = -1
-        if (x in positives):
-
-            guess = 1
-        
-        current_sol[x] = int((guess+1)/2) #0 or 1
-        #2/3
-        clauses_set = remove_clauses(clauses_set.copy(),x*guess)
-        clauses_set = remove_literals(clauses_set.copy(),x*guess)
-        
-        #4
-        unit = 0
-        while (unit):
-            unit = unit_propagation(clauses_set)
-            #var = clause[0]
-            avar = abs(unit)
-            not_assigned.pop(not_assigned.index(avar))
-            current_sol[avar] = int((avar/unit +1)/2)
-            clauses_set = remove_clauses(clauses_set,unit)
-            clauses_set = remove_literals(clauses_set,unit)
-        
-        #print()
-        '''
-        while():
-            a = pure_literal(clauses_set.copy())
-            if (a):
-                remove_literals
-                remove_clauses
-                current sol
-            else: break
-        '''
-        #pure literal
-        #5
-        if check_empty(clauses_set):
-            #bactrack once , change 1 assumption
-            current_sol[x] = 1-current_sol[x]
-            guess = -1*guess
-            clauses_set = clauses_backtrack.pop().copy()
-
-            clauses_set = remove_clauses(clauses_set.copy(),x*guess)
-            clauses_set = remove_literals(clauses_set.copy(),x*guess)
-            
-            unit = 0
-            while (unit):
-                unit = unit_propagation(clauses_set)
-                #var = clause[0]
-                avar = abs(unit)
-                not_assigned.pop(not_assigned.index(avar))
-                current_sol[avar] = int((avar/unit +1)/2)
-                clauses_set = remove_clauses(clauses_set,unit)
-                clauses_set = remove_literals(clauses_set,unit)
-        
-            if check_empty(clauses_set):
-                #backtrack more , delete assumption
-                current_sol.pop(x)
-                not_assigned.append(x)
-                clauses_set = clauses_backtrack.pop().copy()
-                continue
-        
-        else:
-            #go ahead
-            continue
-
-def unsatif():
-    print(  "UNSATISFAIBLE")
+def unlikely(offset,clause_count):
+    print("c Turkish Muscle")
+    print("s UNSATISFIED")
+    print("c", offset,"clauses not satisfied out of", clause_count, "clauses in total")
     sys.exit()
 
 if __name__ == '__main__' :
-    #random.seed(5)
+    #random.seed(1)
     start_time = time.time()
     time_limit = 10
 
@@ -251,10 +179,25 @@ if __name__ == '__main__' :
     benchmark = sys.argv[1]
     
     #read data
-    var_count,clause_count,clauses,positives = readnprob(benchmark)
+    var_count,clause_count,clauses = readData(benchmark)
+    
+    #find first guesses
+    num_of_first_guesses = 1
+    instances = try_and_remember(var_count,clause_count,clauses,start_time,cutoff=0.5,best_count=num_of_first_guesses)
+    
+    second_guesses = []
+    for i in range(0,num_of_first_guesses):
+        second_guesses.append(instances[i])
+    
+    
+    for i in range(0,num_of_first_guesses):
+        remaining_time = 10  - (time.time()- start_time) - 0.1
+        #print(remaining_time)
+        sol,offset = search_local_random(var_count,instances[i][1],instances[i][0],clauses,remaining_time/(num_of_first_guesses-i))
+        #print(offset,clause_count)
+        #print(time.time() - start_time)
+        second_guesses[i] = (offset,sol.copy())
+    
     
 
-
-    remaining_time = 10 -(time.time()-start_time) -0.005
-    dpll(clauses,var_count,remaining_time)
-    unsatif()
+    unlikely(min(second_guesses)[0],clause_count)

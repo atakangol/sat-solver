@@ -97,11 +97,14 @@ def try_and_remember(var_count,clause_count,clauses,start,cutoff=2,best_count=5)
     #print(time.time() - start)
     return (best_sol)
 
-def search_local_random(var_count,sol,offset,clauses,limit):
+def search_local_random(var_count,sol,offset,clauses,limit,max_flips):
+    orig = sol.copy()
     local_start_time = time.time()
     old = var_count
-    #print(offset)
-    while (time.time()-local_start_time < limit):
+    print(limit)
+    count = 0
+    #while(True):
+    while (time.time()-local_start_time < limit-0.1) and (count < max_flips):
         vars =list( range(0,len(sol)))
         random.shuffle(vars)
         #input("-")
@@ -119,6 +122,7 @@ def search_local_random(var_count,sol,offset,clauses,limit):
             #print(i)
             #input("--")
             if (new_offset == 0):
+                print(count,var_count,clause_count)
                 print_sol(new_sol)
                 sys.exit()
             
@@ -126,6 +130,8 @@ def search_local_random(var_count,sol,offset,clauses,limit):
                 offset = new_offset
                 sol = new_sol.copy()
                 changed = True
+                count += 1
+                #print(" ",offset,hamming_distance(sol,orig))
                 break
             
             else:
@@ -138,50 +144,14 @@ def search_local_random(var_count,sol,offset,clauses,limit):
         temp = get_specific_neighbour(sol.copy(),best[1])
         sol = temp.copy()
         offset = best[0]
+        #print(offset,hamming_distance(sol,orig))
         old = best[1]
+        count += 1
         #print("aaa",old)
 
             
-
+    print(count,var_count,clause_count)
     return (sol,offset)
-
-def search_local_all(var_count,sol,offset,clauses,limit):
-    local_start_time = time.time()
-    
-    while (time.time()-local_start_time < limit):
-    #while (True):
-        vars =list( range(0,len(sol)))
-        random.shuffle(vars)
-
-        changed = False
-        better = (offset,var_count)
-
-        for i in vars:
-
-            temp = get_specific_neighbour(sol.copy(),i)
-            metric = evaluate(clauses,temp)
-            new_offset = clause_count-metric
-
-            if (new_offset == 0):
-                print_sol(temp)
-                sys.exit()
-            
-            if (new_offset < better[0]):
-                changed = True
-                better = (new_offset,i)
-
-        if changed:
-
-            temp = get_specific_neighbour(sol.copy(),better[1])
-            sol = temp.copy()
-            offset = better[0]
-            continue
-
-
-        return (True,sol,offset)
-
-    #print("---")
-    return (False,sol,offset)
 
 def get_specific_neighbour(temp,change):
     temp[change] = 1- temp[change]
@@ -213,10 +183,17 @@ def unlikely(offset,clause_count):
     print("c", offset,"clauses not satisfied out of", clause_count, "clauses in total")
     sys.exit()
 
+def hamming_distance(num1,num2):
+    diff = 0
+    for i in range(0,len(num1)):
+        if(num1[i]!=num2[i]):
+            diff += 1
+    return diff
+
 if __name__ == '__main__' :
     #random.seed(1)
     start_time = time.time()
-    time_limit = 10
+    time_limit = 5*60
 
     if len(sys.argv) != 2:
         sys.exit("Use: %s <benchmark> ")
@@ -227,7 +204,7 @@ if __name__ == '__main__' :
     var_count,clause_count,clauses = readData(benchmark)
     
     #find first guesses
-    num_of_first_guesses = 2
+    num_of_first_guesses = 1
     instances = try_and_remember(var_count,clause_count,clauses,start_time,cutoff=0.5,best_count=num_of_first_guesses)
     
     second_guesses = []
@@ -236,13 +213,26 @@ if __name__ == '__main__' :
     
     
     for i in range(0,num_of_first_guesses):
-        remaining_time = 10  - (time.time()- start_time) - 0.1
+        remaining_time = time_limit  - (time.time()- start_time) - 0.1
         #print(remaining_time)
-        sol,offset = search_local_random(var_count,instances[i][1],instances[i][0],clauses,remaining_time/(num_of_first_guesses-i))
+        sol,offset = search_local_random(var_count,instances[i][1],instances[i][0],clauses,remaining_time/(num_of_first_guesses-i),var_count)
         #print(offset,clause_count)
         #print(time.time() - start_time)
         second_guesses[i] = (offset,sol.copy())
     
-    
+    #print(second_guesses)
+    best_chance = min(second_guesses)
+    remaining_time = time_limit  - (time.time()- start_time)
+    while (remaining_time>0.1):
+        remaining_time = time_limit  - (time.time()- start_time) - 0.1
+        sol,offset = search_local_random(var_count,best_chance[1],best_chance[0],clauses,remaining_time,var_count)
+        best_chance = (offset,sol.copy())
+        '''
+        for i in range(0,num_of_first_guesses): 
+            remaining_time = time_limit  - (time.time()- start_time) - 0.1
+            
+            sol,offset = search_local_random(var_count,second_guesses[i][1],second_guesses[i][0],clauses,remaining_time/(num_of_first_guesses-i),var_count)
+            second_guesses[i] = (offset,sol.copy())
+        '''
 
     unlikely(min(second_guesses)[0],clause_count)
