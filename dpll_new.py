@@ -126,7 +126,7 @@ class  Problem:
 
 def dpll_rec(problem,var):
     #print(problem.clauses)
-    print(problem.not_assigned())
+    #print(problem.not_assigned())
     """
     print("0______")
     print(problem.sol)
@@ -155,11 +155,16 @@ def dpll_rec(problem,var):
         u = problem.unit_propagation()
         #print(p,u)
     
+    try:
+        new_var = random.sample(problem.not_assigned(),1)[0]
+    except :
+        return False
+    """
     new_var = random.randint(1,problem.var_count)
     while (problem.sol[new_var]!=None):
         #print(new_var)
         new_var = random.randint(1,problem.var_count)
-    #print(new_var)
+    """
     """
     print("1______")
     print(problem.sol)
@@ -184,10 +189,17 @@ def dpll_rec(problem,var):
         u = problem.unit_propagation()
         #print(p,u)
     
+    try:
+        new_var = random.sample(problem.not_assigned(),1)[0]
+    except :
+        return False
+    
+    """
     new_var = random.randint(1,problem.var_count)
     while (problem.sol[new_var]!=None):
         #print(new_var)
         new_var = random.randint(1,problem.var_count)
+    """
     #print(new_var)
     """
     print("2______")
@@ -252,7 +264,8 @@ if __name__ == '__main__' :
     benchmark = sys.argv[1]
     
     orig_problem = Problem(benchmark)
-
+    if orig_problem.var_count>=sys.getrecursionlimit() * 0.85:
+        sys.setrecursionlimit(int(orig_problem.var_count * 1.15))
     
     dpll_init(orig_problem)
 
