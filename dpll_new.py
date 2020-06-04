@@ -14,6 +14,9 @@ class  Problem:
     def __init__(self,benchmark = None, var_count= None,clause_count= None,clauses= None):
         if (benchmark is not None):
             self.var_count,self.clause_count,temp = readData(benchmark)
+            #self.var_count,self.clause_count,temp,v  =readnanalize(benchmark)
+            #global var_map 
+            #var_map = v
             self.clauses = deepcopy(temp)
             self.sol = {}
             self.init()
@@ -33,9 +36,12 @@ class  Problem:
         new_prob = Problem(var_count=self.var_count,clause_count=self.clause_count,clauses=self.clauses)
         return new_prob
     def not_assigned(self):
+        global var_map
         not_ass = []
-        for i in self.sol:
-            if (self.sol[i] == None):
+        m = max(var_map.values())
+        #var_map = dict(sorted(var_map.items(), key = lambda kv:(kv[1], kv[0])))
+        for i in list(var_map.keys()):
+            if (self.sol[i] == None) and var_map[i]==m:
                 not_ass.append(i)
 
         return not_ass
@@ -84,7 +90,6 @@ class  Problem:
                             positive = False
                             break
                 if (not_pure):
-                    #print("hop")
                     continue
                 #print(var)
                 if positive:
@@ -124,7 +129,10 @@ class  Problem:
             if self.sol[var] == None:
                 self.sol[var] = 0
 
+
 def dpll_rec(problem,var):
+    #global var_map
+    #print(max(var_map.values()),sum(var_map.values()))
     #print(problem.clauses)
     #print(problem.not_assigned())
     """
@@ -157,7 +165,10 @@ def dpll_rec(problem,var):
     
     try:
         new_var = random.sample(problem.not_assigned(),1)[0]
+        #new_var = problem.not_assigned()[-1]
+        #print(new_var)
     except :
+        var_map[var] += 1
         return False
     """
     new_var = random.randint(1,problem.var_count)
@@ -191,7 +202,11 @@ def dpll_rec(problem,var):
     
     try:
         new_var = random.sample(problem.not_assigned(),1)[0]
+        #new_var = problem.not_assigned()[-1]
+        #print(new_var)
     except :
+        #print(problem.not_assigned())
+        var_map[var] += 1
         return False
     
     """
@@ -209,11 +224,19 @@ def dpll_rec(problem,var):
     input()
     """
     dpll_rec(problem,new_var)
+    var_map[var] += 1
     return False
 
-
 def dpll_init(problem):
+    global var_map
+    a = list(range(1,problem.var_count+1))
+    random.shuffle(a)
+    for k in a:
+        var_map[k] = 0
+    
+    #print(var_map.keys())
     i = random.randint(1,problem.var_count)
+    print("start:",i)
     dpll_rec(problem,i)
 
 def print_sol(sol):
@@ -251,12 +274,74 @@ def readData(name): #reads the file and returns the relevant data
     #print(clauses)
     return(var_count,clause_count,clauses)
 
+def readnanalize(name):
+    with open(name, mode='r') as cnf_file:
+        i=0
+        clauses = []
+        var_map = {}
+        for line in cnf_file:
+            if (i==0):
+                header = line.split(' ')
+                var_count = int(header[2])
+                i += 1
+                for c in range(1,var_count+1):
+                    var_map[c] = 0
+                #print(counts)
+            else:
+                temp = line.split(' ')[:3]
+                temp = list(map(int,temp))
+                clauses.append(temp)
+                for c in temp:
+                    var_map[abs(c)] += 1
 
+    #print(counts)
+    var_map = dict(sorted(var_map.items(), key = lambda kv:(kv[1], kv[0])))
+    #var_map = dict(sorted(var_map.items(), key = lambda kv:(kv[1], kv[0]),reverse=True))
+    #print(var_map)
+    var_map = list(var_map.keys())
+    #print(var_map)
+    #var_map = merge_lists(var_map[0:int(len(var_map)/2)],var_map[int(len(var_map)/2):])
+    clause_count = len(clauses)
+    return(var_count,clause_count,clauses,var_map)
+
+def merge_lists(litem1,litem2):
+    
+    merged = []
+    l = min(len(litem1),len(litem2))
+    for i in range(0,int(l/3)):
+        a = litem1.pop(0)
+        merged.append(a)
+        a = litem1.pop(0)
+        merged.append(a)
+        a = litem1.pop(0)
+        merged.append(a)
+
+
+        a = litem2.pop()
+        merged.append(a)
+    if(len(litem1)>0):
+        l=len(litem1)
+        for i in range(0,l):
+            a = litem1.pop(0)
+            merged.append(a)
+    if(len(litem2)>0):
+        l=len(litem2)
+        for i in range(0,l):
+            a = litem2.pop(0)
+            merged.append(a)
+    return(merged)
+
+
+def unsatif():
+    print(  "UNSATISFAIBLE")
+    sys.exit()
 
 if __name__ == '__main__' :
     #random.seed(1)
     start_time = time.time()
     time_limit = 10
+
+    var_map = {}
 
     if len(sys.argv) != 2:
         sys.exit("Use: %s <benchmark> ")
@@ -267,8 +352,10 @@ if __name__ == '__main__' :
     if orig_problem.var_count>=sys.getrecursionlimit() * 0.85:
         sys.setrecursionlimit(int(orig_problem.var_count * 1.15))
     
-    dpll_init(orig_problem)
-
+    a = dpll_init(orig_problem)
+    #print(orig_problem.sol)
+    #print(orig_problem.not_assigned())
+    
     print(time.time() - start_time)
 
     
