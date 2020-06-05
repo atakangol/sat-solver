@@ -131,17 +131,7 @@ class  Problem:
 
 
 def dpll_rec(problem,var):
-    #global var_map
-    #print(max(var_map.values()),sum(var_map.values()))
-    #print(problem.clauses)
-    #print(problem.not_assigned())
-    """
-    print("0______")
-    print(problem.sol)
-    print(problem.clauses)
-    print(var,problem.sol[var])
-    input()
-    """
+    
     if problem.empty_clause_check():
         #failed
         return False
@@ -165,24 +155,11 @@ def dpll_rec(problem,var):
     
     try:
         new_var = random.sample(problem.not_assigned(),1)[0]
-        #new_var = problem.not_assigned()[-1]
-        #print(new_var)
+        
     except :
         var_map[var] += 1
         return False
-    """
-    new_var = random.randint(1,problem.var_count)
-    while (problem.sol[new_var]!=None):
-        #print(new_var)
-        new_var = random.randint(1,problem.var_count)
-    """
-    """
-    print("1______")
-    print(problem.sol)
-    print(problem.clauses)
-    print(var,problem.sol[var])
-    input()
-    """
+    
 
     dpll_rec(problem,new_var)
     
@@ -202,27 +179,12 @@ def dpll_rec(problem,var):
     
     try:
         new_var = random.sample(problem.not_assigned(),1)[0]
-        #new_var = problem.not_assigned()[-1]
-        #print(new_var)
+       
     except :
-        #print(problem.not_assigned())
+        
         var_map[var] += 1
         return False
     
-    """
-    new_var = random.randint(1,problem.var_count)
-    while (problem.sol[new_var]!=None):
-        #print(new_var)
-        new_var = random.randint(1,problem.var_count)
-    """
-    #print(new_var)
-    """
-    print("2______")
-    print(problem.sol)
-    print(problem.clauses)
-    print(var,problem.sol[var])
-    input()
-    """
     dpll_rec(problem,new_var)
     var_map[var] += 1
     return False
@@ -236,7 +198,6 @@ def dpll_init(problem):
     
     #print(var_map.keys())
     i = random.randint(1,problem.var_count)
-    print("start:",i)
     dpll_rec(problem,i)
 
 def print_sol(sol):
@@ -273,64 +234,6 @@ def readData(name): #reads the file and returns the relevant data
     #print (var_count,clause_count)
     #print(clauses)
     return(var_count,clause_count,clauses)
-"""
-def readnanalize(name):
-    with open(name, mode='r') as cnf_file:
-        i=0
-        clauses = []
-        var_map = {}
-        for line in cnf_file:
-            if (i==0):
-                header = line.split(' ')
-                var_count = int(header[2])
-                i += 1
-                for c in range(1,var_count+1):
-                    var_map[c] = 0
-                #print(counts)
-            else:
-                temp = line.split(' ')[:3]
-                temp = list(map(int,temp))
-                clauses.append(temp)
-                for c in temp:
-                    var_map[abs(c)] += 1
-
-    #print(counts)
-    var_map = dict(sorted(var_map.items(), key = lambda kv:(kv[1], kv[0])))
-    #var_map = dict(sorted(var_map.items(), key = lambda kv:(kv[1], kv[0]),reverse=True))
-    #print(var_map)
-    var_map = list(var_map.keys())
-    #print(var_map)
-    #var_map = merge_lists(var_map[0:int(len(var_map)/2)],var_map[int(len(var_map)/2):])
-    clause_count = len(clauses)
-    return(var_count,clause_count,clauses,var_map)
-"""
-def merge_lists(litem1,litem2):
-    
-    merged = []
-    l = min(len(litem1),len(litem2))
-    for i in range(0,int(l/3)):
-        a = litem1.pop(0)
-        merged.append(a)
-        a = litem1.pop(0)
-        merged.append(a)
-        a = litem1.pop(0)
-        merged.append(a)
-
-
-        a = litem2.pop()
-        merged.append(a)
-    if(len(litem1)>0):
-        l=len(litem1)
-        for i in range(0,l):
-            a = litem1.pop(0)
-            merged.append(a)
-    if(len(litem2)>0):
-        l=len(litem2)
-        for i in range(0,l):
-            a = litem2.pop(0)
-            merged.append(a)
-    return(merged)
-
 
 def unsatif():
     print(  "UNSATISFAIBLE")
@@ -353,9 +256,9 @@ if __name__ == '__main__' :
         sys.setrecursionlimit(int(orig_problem.var_count * 1.15))
     
     a = dpll_init(orig_problem)
-    #print(orig_problem.sol)
-    #print(orig_problem.not_assigned())
+
     
+    unsatif()
     print(time.time() - start_time)
 
     
